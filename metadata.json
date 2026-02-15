@@ -1,0 +1,9 @@
+
+{
+  "name": "SantimPay POS Elite",
+  "description": "A world-class high-fidelity Point of Sale system for SantimPay, featuring advanced inventory, shift management, and tax compliance.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
