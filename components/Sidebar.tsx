@@ -1,7 +1,9 @@
-
+'use client';
 import React, { useState, useEffect } from 'react';
 import { ViewMode } from '../types';
 import { LOGO_URL } from '../constants';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { setViewMode } from '../lib/features/view/viewSlice';
 import { 
   LayoutGrid, 
   Users, 
@@ -16,12 +18,9 @@ import {
   Menu
 } from 'lucide-react';
 
-interface SidebarProps {
-  currentView: ViewMode;
-  onViewChange: (view: ViewMode) => void;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) => {
+export const Sidebar: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const currentView = useAppSelector((state) => state.view.viewMode);
   const [isCollapsed, setIsCollapsed] = useState(currentView === ViewMode.CHECKOUT);
 
   // Auto-collapse when switching to Settle/Checkout view as per requirement
@@ -68,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
           return (
             <button
               key={item.mode}
-              onClick={() => onViewChange(item.mode)}
+              onClick={() => dispatch(setViewMode(item.mode))}
               title={isCollapsed ? item.label : ''}
               className={`flex items-center rounded-2xl transition-all relative group h-14 ${
                 isActive 
@@ -99,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
       {/* Footer Actions */}
       <div className={`px-3 pt-6 flex flex-col gap-2 transition-all ${isCollapsed ? 'items-center' : 'items-stretch'}`}>
         <button 
-          onClick={() => onViewChange(ViewMode.SETTINGS)}
+          onClick={() => dispatch(setViewMode(ViewMode.SETTINGS))}
           className={`h-14 rounded-2xl flex items-center transition-all shadow-sm ${
             currentView === ViewMode.SETTINGS 
               ? 'bg-black text-[#d3af35]' 

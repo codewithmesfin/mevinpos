@@ -1,26 +1,30 @@
-
+'use client';
 import React, { useState } from 'react';
-import { CartItem, Coupon, VariantOption, Customer } from '../types';
+import { CartItem, VariantOption, Customer } from '../types';
 import { CUSTOMERS } from '../constants';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import {
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  setSelectedCustomer
+} from '../lib/features/cart/cartSlice';
 import { Trash2, Plus, Minus, ChevronRight, Sparkles, ReceiptText, Tag, User, Search, CheckCircle2, AlertCircle, X, Edit2 } from 'lucide-react';
 
 interface CartProps {
-  items: CartItem[];
-  activeCoupon: Coupon | null;
-  selectedCustomer: Customer | null;
-  onSelectCustomer: (customer: Customer | null) => void;
-  onApplyCoupon: (coupon: Coupon | null) => void;
-  onRemove: (cartId: string) => void;
-  onUpdateQty: (cartId: string, delta: number) => void;
   onEditVariants: (item: CartItem) => void;
-  onClear: () => void;
   onCheckout: () => void;
   onCloseMobile?: () => void;
 }
 
 export const Cart: React.FC<CartProps> = ({ 
-  items, activeCoupon, selectedCustomer, onSelectCustomer, onApplyCoupon, onRemove, onUpdateQty, onEditVariants, onClear, onCheckout, onCloseMobile 
+  onEditVariants, onCheckout, onCloseMobile
 }) => {
+  const dispatch = useAppDispatch();
+  const items = useAppSelector((state) => state.cart.items);
+  const selectedCustomer = useAppSelector((state) => state.cart.selectedCustomer);
+  const activeCoupon = useAppSelector((state) => state.cart.activeCoupon);
+
   const [isChoosingCustomer, setIsChoosingCustomer] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
   
@@ -68,7 +72,7 @@ export const Cart: React.FC<CartProps> = ({
              {filteredCustomers.map(c => (
                <button 
                 key={c.id} 
-                onClick={() => { onSelectCustomer(c); setIsChoosingCustomer(false); }}
+                onClick={() => { dispatch(setSelectedCustomer(c)); setIsChoosingCustomer(false); }}
                 className="w-full p-6 rounded-3xl border border-gray-50 bg-gray-50 hover:border-black hover:bg-white text-left flex justify-between items-center transition-all group shadow-sm hover:shadow-xl"
                >
                  <div>
@@ -86,7 +90,7 @@ export const Cart: React.FC<CartProps> = ({
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-black text-black tracking-tighter uppercase">Order Overview</h3>
           <div className="flex items-center gap-4">
-            <button onClick={onClear} className="text-[9px] font-black text-gray-300 uppercase tracking-widest hover:text-red-500 transition-colors">Reset</button>
+            <button onClick={() => dispatch(clearCart())} className="text-[9px] font-black text-gray-300 uppercase tracking-widest hover:text-red-500 transition-colors">Reset</button>
             <button onClick={onCloseMobile} className="md:hidden p-2 text-gray-300 hover:text-black transition-colors"><X className="w-5 h-5" /></button>
           </div>
         </div>
@@ -149,11 +153,11 @@ export const Cart: React.FC<CartProps> = ({
                 
                 <div className="flex items-center justify-between px-2 md:px-3 pb-2 md:pb-3">
                   <div className="flex items-center gap-1 bg-white p-1 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm">
-                    <button onClick={() => onUpdateQty(item.cartId, -1)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg md:rounded-xl transition-all"><Minus className="w-3 h-3 md:w-3.5 md:h-3.5 stroke-[3px]" /></button>
+                    <button onClick={() => dispatch(updateQuantity({ cartId: item.cartId, delta: -1 }))} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg md:rounded-xl transition-all"><Minus className="w-3 h-3 md:w-3.5 md:h-3.5 stroke-[3px]" /></button>
                     <span className="w-6 md:w-8 text-center text-[11px] md:text-xs font-black">{item.quantity}</span>
-                    <button onClick={() => onUpdateQty(item.cartId, 1)} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg md:rounded-xl transition-all"><Plus className="w-3 h-3 md:w-3.5 md:h-3.5 stroke-[3px]" /></button>
+                    <button onClick={() => dispatch(updateQuantity({ cartId: item.cartId, delta: 1 }))} className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center hover:bg-gray-50 rounded-lg md:rounded-xl transition-all"><Plus className="w-3 h-3 md:w-3.5 md:h-3.5 stroke-[3px]" /></button>
                   </div>
-                  <button onClick={() => onRemove(item.cartId)} className="p-2 text-gray-200 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  <button onClick={() => dispatch(removeFromCart(item.cartId))} className="p-2 text-gray-200 hover:text-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             ))}

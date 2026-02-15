@@ -1,4 +1,4 @@
-
+'use client';
 import React from 'react';
 import { Category } from '../types';
 import { CATEGORIES, PRIMARY_GOLD } from '../constants';

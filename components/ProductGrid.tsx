@@ -1,4 +1,4 @@
-
+'use client';
 import React from 'react';
 import { Product } from '../types';
 import { Plus, Tag } from 'lucide-react';

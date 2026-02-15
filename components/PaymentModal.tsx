@@ -1,6 +1,6 @@
-
+'use client';
 import React, { useState } from 'react';
-import { Customer, CartItem, VariantOption } from '../types';
+import { Customer, CartItem } from '../types';
 import { LOGO_URL } from '../constants';
 import { X, Banknote, Smartphone, CheckCircle2, Loader2, Globe, ChevronRight, User, ReceiptText, ChevronDown, ChevronUp } from 'lucide-react';
 
