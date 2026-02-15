@@ -1,14 +1,14 @@
-
+'use client';
 import React from 'react';
 import { ViewMode } from '../types';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import { setViewMode } from '../lib/features/view/viewSlice';
 import { LayoutGrid, Receipt, BarChart3, Users, Settings, Ticket } from 'lucide-react';
 
-interface BottomNavProps {
-  currentView: ViewMode;
-  onViewChange: (view: ViewMode) => void;
-}
+export const BottomNav: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const currentView = useAppSelector((state) => state.view.viewMode);
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange }) => {
   const items = [
     { mode: ViewMode.CHECKOUT, icon: LayoutGrid, label: 'POS' },
     { mode: ViewMode.RECEIPTS, icon: Receipt, label: 'Sales' },
@@ -22,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentView, onViewChange 
       {items.map((item) => (
         <button
           key={item.mode}
-          onClick={() => onViewChange(item.mode)}
+          onClick={() => dispatch(setViewMode(item.mode))}
           className={`flex flex-col items-center gap-1.5 transition-all flex-1 py-1 ${
             currentView === item.mode ? 'text-black' : 'text-gray-300'
           }`}

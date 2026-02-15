@@ -1,122 +1,32 @@
+'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Sidebar } from './components/Sidebar';
-import { ProductGrid } from './components/ProductGrid';
-import { Cart } from './components/Cart';
-import { CategoryTabs } from './components/CategoryTabs';
-import { PaymentModal } from './components/PaymentModal';
-import { VariantModal } from './components/VariantModal';
-import { BottomNav } from './components/BottomNav';
-import { ViewMode, Product, CartItem, Category, Coupon, VariantOption, Customer, Shift, Invoice, Tax } from './types';
-import { PRODUCTS, PRIMARY_GOLD, LOGO_URL, CUSTOMERS, TAX_RULES } from './constants';
+import { Sidebar } from '../components/Sidebar';
+import { ProductGrid } from '../components/ProductGrid';
+import { Cart } from '../components/Cart';
+import { CategoryTabs } from '../components/CategoryTabs';
+import { PaymentModal } from '../components/PaymentModal';
+import { VariantModal } from '../components/VariantModal';
+import { BottomNav } from '../components/BottomNav';
+import { ViewMode, Product, CartItem, Invoice } from '../types';
+import { PRODUCTS, LOGO_URL } from '../constants';
+import { useAppDispatch, useAppSelector } from '../lib/hooks';
+import {
+  addToCart,
+  updateCartItemVariants,
+  clearCart,
+} from '../lib/features/cart/cartSlice';
+import { setActiveCategory, setSearchQuery } from '../lib/features/products/productsSlice';
+import { addInvoice } from '../lib/features/pos/posSlice';
 import { 
   Search, Bell, UserCircle, 
-  Scan, ShieldCheck, Clock, CheckCircle2,
-  Mail, Phone, Building2, User, Landmark, History, Trash2, X,
-  FileText, Receipt, BarChart3, TrendingUp, DollarSign, PieChart, ArrowUpRight,
-  ShoppingBag, Ticket, Sparkles, Tag, Gift, Zap, Plus
+  Scan, ShieldCheck, Mail, Phone, Building2, User, Landmark, History, X,
+  Receipt, TrendingUp, DollarSign, Plus,
+  ShoppingBag, Sparkles, Gift, Zap
 } from 'lucide-react';
 
-const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.CHECKOUT);
-  const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  
-  const [shifts, setShifts] = useState<Shift[]>([{
-    id: 'SH-001',
-    operator: 'Admin Operator',
-    startTime: new Date().toLocaleTimeString(),
-    openingBalance: 500,
-    totalSales: 1240.50,
-    status: 'Open'
-  }]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [taxRules] = useState<Tax[]>(TAX_RULES);
-  const [allCustomers] = useState<Customer[]>(CUSTOMERS);
-
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isCartOpenMobile, setIsCartOpenMobile] = useState(false);
-  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
-  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-
-  const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter(product => {
-      const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           product.barcode.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, searchQuery]);
-
-  const handleProductClick = (product: Product) => {
-    if (product.variantGroups && product.variantGroups.length > 0) {
-      setSelectedProductForVariants(product);
-    } else {
-      addToCart(product, {});
-    }
-  };
-
-  const addToCart = (product: Product, variants: Record<string, VariantOption>, quantityOverride?: number) => {
-    const variantIdStr = Object.values(variants).map(v => v.id).sort().join('-');
-    const cartId = `${product.id}-${variantIdStr}`;
-    const modifierTotal = Object.values(variants).reduce((sum: number, v) => sum + (v as VariantOption).priceModifier, 0);
-    const totalUnitPrice = product.basePrice + modifierTotal;
-
-    setCart(prev => {
-      const existing = prev.find(item => item.cartId === cartId);
-      if (existing) {
-        return prev.map(item => item.cartId === cartId 
-          ? { ...item, quantity: quantityOverride !== undefined ? item.quantity + (quantityOverride - item.quantity) : item.quantity + 1 } 
-          : item
-        );
-      }
-      return [...prev, { ...product, cartId, selectedVariants: variants, totalUnitPrice, quantity: quantityOverride || 1 }];
-    });
-    setSelectedProductForVariants(null);
-  };
-
-  const handleUpdateVariants = (product: Product, variants: Record<string, VariantOption>) => {
-    if (!editingCartItem) return;
-
-    const oldCartId = editingCartItem.cartId;
-    const currentQty = editingCartItem.quantity;
-
-    setCart(prev => {
-      const filtered = prev.filter(item => item.cartId !== oldCartId);
-      const variantIdStr = Object.values(variants).map(v => v.id).sort().join('-');
-      const newCartId = `${product.id}-${variantIdStr}`;
-      const modifierTotal = Object.values(variants).reduce((sum: number, v) => sum + (v as VariantOption).priceModifier, 0);
-      const totalUnitPrice = product.basePrice + modifierTotal;
-
-      const existingInFiltered = filtered.find(item => item.cartId === newCartId);
-      if (existingInFiltered) {
-        return filtered.map(item => item.cartId === newCartId 
-          ? { ...item, quantity: item.quantity + currentQty } 
-          : item
-        );
-      }
-      
-      return [...filtered, { ...product, cartId: newCartId, selectedVariants: variants, totalUnitPrice, quantity: currentQty }];
-    });
-
-    setEditingCartItem(null);
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    setActiveCoupon(null);
-    setSelectedCustomer(null);
-    setIsCartOpenMobile(false);
-  };
-
-  const cartSubtotal = cart.reduce((sum, item) => sum + item.totalUnitPrice * item.quantity, 0);
-  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const ReceiptsView = () => (
+const ReceiptsView = () => {
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Receipts</h2>
@@ -150,8 +60,10 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
 
-  const PromotionsView = () => (
+const PromotionsView = () => {
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-10 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -164,7 +76,6 @@ const App: React.FC = () => {
       </div>
 
       <div className="space-y-12">
-        {/* Active Campaigns */}
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Zap className="w-4 h-4 text-[#d3af35]" />
@@ -200,7 +111,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Loyalty Programs */}
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Sparkles className="w-4 h-4 text-[#d3af35]" />
@@ -225,7 +135,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* Global Discounts */}
         <section>
           <div className="flex items-center gap-3 mb-6">
             <Gift className="w-4 h-4 text-[#d3af35]" />
@@ -271,100 +180,103 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
 
-  const ReportsView = () => {
-    const [reportType, setReportType] = useState<'X' | 'Z' | 'General'>('General');
+const ReportsView = () => {
+  const [reportType, setReportType] = useState<'X' | 'Z' | 'General'>('General');
 
-    return (
-      <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
-            <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Intelligence</h2>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.2em]">Audit & Analytics</p>
-          </div>
-          <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto">
-            {['General', 'X', 'Z'].map((type) => (
-              <button
-                key={type}
-                onClick={() => setReportType(type as any)}
-                className={`flex-1 md:flex-none px-4 md:px-8 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${reportType === type ? 'bg-black text-white' : 'text-gray-400 hover:text-black'}`}
-              >
-                {type}
-              </button>
+  return (
+    <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Intelligence</h2>
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-[0.2em]">Audit & Analytics</p>
+        </div>
+        <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto">
+          {['General', 'X', 'Z'].map((type) => (
+            <button
+              key={type}
+              onClick={() => setReportType(type as any)}
+              className={`flex-1 md:flex-none px-4 md:px-8 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${reportType === type ? 'bg-black text-white' : 'text-gray-400 hover:text-black'}`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {reportType === 'General' && (
+        <div className="space-y-8 md:space-y-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+            {[
+              { label: 'Revenue', value: 'Br 12.4k', icon: DollarSign, color: 'text-green-500' },
+              { label: 'TXN', value: '142', icon: History, color: 'text-blue-500' },
+              { label: 'Avg Sale', value: 'Br 87', icon: TrendingUp, color: 'text-[#d3af35]' },
+              { label: 'Tax', value: 'Br 1.8k', icon: ShieldCheck, color: 'text-purple-500' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-white p-5 md:p-8 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-sm">
+                <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gray-50 flex items-center justify-center mb-4 md:mb-6 ${stat.color}`}>
+                  <stat.icon className="w-5 h-5 md:w-6 md:h-6" />
+                </div>
+                <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-lg md:text-3xl font-black text-black tracking-tighter">{stat.value}</p>
+              </div>
             ))}
           </div>
-        </div>
 
-        {reportType === 'General' && (
-          <div className="space-y-8 md:space-y-12">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-              {[
-                { label: 'Revenue', value: 'Br 12.4k', icon: DollarSign, color: 'text-green-500' },
-                { label: 'TXN', value: '142', icon: History, color: 'text-blue-500' },
-                { label: 'Avg Sale', value: 'Br 87', icon: TrendingUp, color: 'text-[#d3af35]' },
-                { label: 'Tax', value: 'Br 1.8k', icon: ShieldCheck, color: 'text-purple-500' }
-              ].map((stat, i) => (
-                <div key={i} className="bg-white p-5 md:p-8 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-sm">
-                  <div className={`w-9 h-9 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gray-50 flex items-center justify-center mb-4 md:mb-6 ${stat.color}`}>
-                    <stat.icon className="w-5 h-5 md:w-6 md:h-6" />
-                  </div>
-                  <p className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <p className="text-lg md:text-3xl font-black text-black tracking-tighter">{stat.value}</p>
+          <div className="bg-black rounded-[40px] md:rounded-[48px] p-6 md:p-12 text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-[#d3af35]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                <div className="space-y-2 md:space-y-4 text-center md:text-left">
+                   <h3 className="text-xl md:text-3xl font-black uppercase tracking-tight">Performance</h3>
+                   <p className="text-white/40 text-[8px] font-bold uppercase tracking-widest">Operational Day Cycle</p>
                 </div>
-              ))}
-            </div>
-            
-            <div className="bg-black rounded-[40px] md:rounded-[48px] p-6 md:p-12 text-white relative overflow-hidden">
-               <div className="absolute top-0 right-0 w-64 h-64 bg-[#d3af35]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-               <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                  <div className="space-y-2 md:space-y-4 text-center md:text-left">
-                     <h3 className="text-xl md:text-3xl font-black uppercase tracking-tight">Performance</h3>
-                     <p className="text-white/40 text-[8px] font-bold uppercase tracking-widest">Operational Day Cycle</p>
-                  </div>
-                  <div className="flex gap-10 md:gap-12">
-                     <div className="text-center">
-                        <p className="text-3xl md:text-5xl font-black tracking-tighter text-[#d3af35]">92%</p>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mt-1.5 md:mt-2">Efficiency</p>
-                     </div>
-                     <div className="text-center">
-                        <p className="text-3xl md:text-5xl font-black tracking-tighter text-white">12.5k</p>
-                        <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mt-1.5 md:mt-2">Daily Peak</p>
-                     </div>
-                  </div>
+                <div className="flex gap-10 md:gap-12">
+                   <div className="text-center">
+                      <p className="text-3xl md:text-5xl font-black tracking-tighter text-[#d3af35]">92%</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mt-1.5 md:mt-2">Efficiency</p>
+                   </div>
+                   <div className="text-center">
+                      <p className="text-3xl md:text-5xl font-black tracking-tighter text-white">12.5k</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest text-white/40 mt-1.5 md:mt-2">Daily Peak</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {(reportType === 'X' || reportType === 'Z') && (
+        <div className="bg-white rounded-[40px] md:rounded-[48px] border border-gray-100 shadow-sm p-6 md:p-12 max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom-4">
+          <div className="text-center space-y-2">
+             <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest">{reportType === 'X' ? 'X-Reading' : 'Z-Report Final'}</h3>
+             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em]">{reportType === 'X' ? 'Non-Closing Audit' : 'Shift Termination'}</p>
+          </div>
+          <div className="space-y-5 border-y border-gray-50 py-8">
+             {[
+               { label: 'Opening', val: 'Br 500.00' },
+               { label: 'Net Sales', val: 'Br 2,140.50' },
+               { label: 'Tax', val: 'Br 321.08' },
+               { label: 'Balance', val: 'Br 2,961.58' }
+             ].map((row, i) => (
+               <div key={i} className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{row.label}</span>
+                  <span className="text-base md:text-lg font-black text-black">{row.val}</span>
                </div>
-            </div>
+             ))}
           </div>
-        )}
+          <button className={`w-full py-5 md:py-6 rounded-[24px] md:rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-4 ${reportType === 'Z' ? 'bg-red-600 text-white hover:bg-black' : 'bg-black text-white hover:bg-[#d3af35]'}`}>
+             {reportType === 'X' ? 'Print X-Reading' : 'Finalize & Close Shift'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
-        {(reportType === 'X' || reportType === 'Z') && (
-          <div className="bg-white rounded-[40px] md:rounded-[48px] border border-gray-100 shadow-sm p-6 md:p-12 max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom-4">
-            <div className="text-center space-y-2">
-               <h3 className="text-xl md:text-2xl font-black uppercase tracking-widest">{reportType === 'X' ? 'X-Reading' : 'Z-Report Final'}</h3>
-               <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.3em]">{reportType === 'X' ? 'Non-Closing Audit' : 'Shift Termination'}</p>
-            </div>
-            <div className="space-y-5 border-y border-gray-50 py-8">
-               {[
-                 { label: 'Opening', val: 'Br 500.00' },
-                 { label: 'Net Sales', val: 'Br 2,140.50' },
-                 { label: 'Tax', val: 'Br 321.08' },
-                 { label: 'Balance', val: 'Br 2,961.58' }
-               ].map((row, i) => (
-                 <div key={i} className="flex justify-between items-center">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{row.label}</span>
-                    <span className="text-base md:text-lg font-black text-black">{row.val}</span>
-                 </div>
-               ))}
-            </div>
-            <button className={`w-full py-5 md:py-6 rounded-[24px] md:rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-4 ${reportType === 'Z' ? 'bg-red-600 text-white hover:bg-black' : 'bg-black text-white hover:bg-[#d3af35]'}`}>
-               {reportType === 'X' ? 'Print X-Reading' : 'Finalize & Close Shift'}
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const ShiftsView = () => (
+const ShiftsView = () => {
+  const shifts = useAppSelector((state) => state.pos.shifts);
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Shift Ops</h2>
@@ -400,9 +312,11 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
 
-  // Define InvoicesView, TaxesView, and CustomersView before renderView to ensure they are available in scope.
-  const InvoicesView = () => (
+const InvoicesView = () => {
+  const invoices = useAppSelector((state) => state.pos.invoices);
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Tax Invoices</h2>
@@ -441,8 +355,11 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
 
-  const TaxesView = () => (
+const TaxesView = () => {
+  const taxRules = useAppSelector((state) => state.pos.taxRules);
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Tax Matrix</h2>
@@ -466,8 +383,11 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
 
-  const CustomersView = () => (
+const CustomersView = () => {
+  const allCustomers = useAppSelector((state) => state.pos.allCustomers);
+  return (
     <div className="flex-1 overflow-y-auto px-4 md:px-12 py-6 md:py-10 space-y-8 bg-[#FBFBFB] animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight">Identity</h2>
@@ -500,6 +420,41 @@ const App: React.FC = () => {
       </div>
     </div>
   );
+};
+
+export default function Home() {
+  const dispatch = useAppDispatch();
+  const viewMode = useAppSelector((state) => state.view.viewMode);
+  const cart = useAppSelector((state) => state.cart.items);
+  const selectedCustomer = useAppSelector((state) => state.cart.selectedCustomer);
+  const activeCategory = useAppSelector((state) => state.products.activeCategory);
+  const searchQuery = useAppSelector((state) => state.products.searchQuery);
+
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isCartOpenMobile, setIsCartOpenMobile] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const filteredProducts = useMemo(() => {
+    return PRODUCTS.filter(product => {
+      const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           product.barcode.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, searchQuery]);
+
+  const handleProductClick = (product: Product) => {
+    if (product.variantGroups && product.variantGroups.length > 0) {
+      setSelectedProductForVariants(product);
+    } else {
+      dispatch(addToCart({ product, variants: {} }));
+    }
+  };
+
+  const cartSubtotal = cart.reduce((sum, item) => sum + item.totalUnitPrice * item.quantity, 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const renderView = () => {
     switch(viewMode) {
@@ -507,7 +462,7 @@ const App: React.FC = () => {
         return (
           <>
             <div className="px-4 md:px-12 py-2 md:py-4 bg-white shrink-0 border-b border-gray-100 z-20 overflow-x-auto no-scrollbar">
-              <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
+              <CategoryTabs active={activeCategory} onChange={(cat) => dispatch(setActiveCategory(cat))} />
             </div>
             <div className="flex-1 overflow-y-auto px-4 md:px-12 py-4 md:py-10 pb-44 md:pb-12 bg-white no-scrollbar">
               <ProductGrid products={filteredProducts} onProductClick={handleProductClick} />
@@ -527,15 +482,12 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full bg-white overflow-hidden select-none font-sans text-black">
-      {/* Desktop Sidebar */}
       <div className="hidden md:flex">
-        <Sidebar currentView={viewMode} onViewChange={setViewMode} />
+        <Sidebar />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 bg-white relative overflow-hidden">
-        {/* Mobile-First Responsive Header */}
         <header className="bg-white border-b border-gray-100 sticky top-0 z-40 transition-all">
-          {/* Row 1: Logo & Actions */}
           <div className="h-16 md:h-20 flex items-center px-4 md:px-12 justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="md:hidden w-8 h-8 rounded-lg overflow-hidden p-1.5 bg-black">
@@ -557,7 +509,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: Search & Scanner - Prominent on Mobile */}
           <div className="px-4 md:px-12 pb-4 md:pb-0 md:absolute md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 md:w-[400px] lg:w-[500px]">
             <div className="flex items-center gap-2 md:gap-4">
               <div className="flex-1 relative group">
@@ -567,7 +518,7 @@ const App: React.FC = () => {
                   placeholder="SKU Search..." 
                   className="w-full bg-gray-50 md:bg-[#F5F5F5] border-transparent focus:bg-white focus:border-black rounded-xl md:rounded-2xl pl-10 md:pl-12 pr-4 md:pr-6 py-2.5 md:py-3.5 text-[10px] md:text-sm font-bold transition-all outline-none border"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => dispatch(setSearchQuery(e.target.value))}
                 />
               </div>
               <button 
@@ -582,7 +533,6 @@ const App: React.FC = () => {
 
         {renderView()}
 
-        {/* Floating Cart FAB for mobile Checkout */}
         {viewMode === ViewMode.CHECKOUT && cartItemCount > 0 && !isCartOpenMobile && (
           <button 
             onClick={() => setIsCartOpenMobile(true)}
@@ -598,11 +548,10 @@ const App: React.FC = () => {
         )}
 
         <div className="md:hidden">
-          <BottomNav currentView={viewMode} onViewChange={setViewMode} />
+          <BottomNav />
         </div>
       </div>
 
-      {/* Cart Drawer Overlay */}
       <div className={`
         fixed inset-0 z-50 transition-all duration-700 md:relative md:translate-y-0 md:inset-auto md:z-20 md:flex
         ${isCartOpenMobile ? 'bg-black/60 backdrop-blur-md' : 'pointer-events-none md:pointer-events-auto'}
@@ -614,15 +563,7 @@ const App: React.FC = () => {
           `}
         >
           <Cart 
-            items={cart} 
-            activeCoupon={activeCoupon}
-            selectedCustomer={selectedCustomer}
-            onSelectCustomer={setSelectedCustomer}
-            onApplyCoupon={(c) => setActiveCoupon(c)}
-            onRemove={(id) => setCart(prev => prev.filter(item => item.cartId !== id))}
-            onUpdateQty={(id, d) => setCart(prev => prev.map(item => item.cartId === id ? { ...item, quantity: Math.max(1, item.quantity + d) } : item))} 
             onEditVariants={(item) => setEditingCartItem(item)}
-            onClear={clearCart}
             onCheckout={() => {
               setIsPaymentModalOpen(true);
               setIsCartOpenMobile(false);
@@ -642,9 +583,11 @@ const App: React.FC = () => {
           }}
           onAdd={(p, s) => {
             if (editingCartItem) {
-              handleUpdateVariants(p, s);
+              dispatch(updateCartItemVariants({ oldCartId: editingCartItem.cartId, product: p, variants: s }));
+              setEditingCartItem(null);
             } else {
-              addToCart(p, s);
+              dispatch(addToCart({ product: p, variants: s }));
+              setSelectedProductForVariants(null);
             }
           }}
         />
@@ -668,8 +611,8 @@ const App: React.FC = () => {
               status: 'Paid',
               items: [...cart]
             };
-            setInvoices(prev => [newInv, ...prev]);
-            clearCart();
+            dispatch(addInvoice(newInv));
+            dispatch(clearCart());
             setIsPaymentModalOpen(false);
           }}
         />
@@ -698,10 +641,4 @@ const App: React.FC = () => {
       )}
     </div>
   );
-};
-
-const AlertCircle = ({ className }: { className?: string }) => (
-  <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-);
-
-export default App;
+}

@@ -1,4 +1,4 @@
-
+'use client';
 import React, { useState } from 'react';
 import { Product, VariantOption } from '../types';
 import { X, ChevronRight } from 'lucide-react';
