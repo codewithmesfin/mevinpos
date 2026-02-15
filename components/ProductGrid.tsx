@@ -18,14 +18,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductCli
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-8">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2">
       {products.map((product) => (
         <button
           key={product.id}
           onClick={() => onProductClick(product)}
-          className="group flex flex-col bg-white rounded-[24px] md:rounded-[40px] border border-gray-100 hover:border-black hover:shadow-2xl transition-all duration-500 text-left overflow-hidden active:scale-[0.96]"
+          className="group cursor-pointer flex flex-col bg-white rounded-4xl border border-gray-100 hover:border-black hover:shadow-2xl transition-all duration-500 text-left overflow-hidden active:scale-[0.96]"
         >
-          <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 shrink-0">
+          <div className="relative aspect-[4/5] max-h-[200px] overflow-hidden bg-gray-50 shrink-0">
             <img 
               src={product.image} 
               alt={product.name}
@@ -40,13 +40,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductCli
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           
-          <div className="p-3 md:p-8 flex flex-col flex-1 relative">
+          <div className="p-3 flex flex-col flex-1 relative">
             <p className="text-[6px] md:text-[9px] font-black text-[#d3af35] uppercase tracking-widest mb-1 md:mb-2">{product.category}</p>
-            <h3 className="text-[10px] md:text-sm font-black text-black leading-tight line-clamp-2 mb-3 md:mb-6 h-7 md:h-10 tracking-tight">
+            <h3 className="text-[10px] md:text-sm font-black text-black leading-tight line-clamp-2 mb-3 tracking-tight">
               {product.name}
             </h3>
             
-            <div className="flex items-center justify-between mt-auto pt-2 md:pt-6 border-t border-gray-50">
+            <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50">
               <span className="text-sm md:text-xl font-black text-black tracking-tighter tabular-nums">
                 <span className="text-[9px] md:text-xs mr-0.5 text-[#d3af35]">Br</span>
                 {product.basePrice.toFixed(2)}

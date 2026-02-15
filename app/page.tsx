@@ -8,7 +8,7 @@ import { CategoryTabs } from '../components/CategoryTabs';
 import { PaymentModal } from '../components/PaymentModal';
 import { VariantModal } from '../components/VariantModal';
 import { BottomNav } from '../components/BottomNav';
-import { ViewMode, Product, CartItem, Invoice } from '../types';
+import { ViewMode, Product, CartItem, Invoice, CustomerType } from '../types';
 import { PRODUCTS, LOGO_URL } from '../constants';
 import { useAppDispatch, useAppSelector } from '../lib/hooks';
 import {
