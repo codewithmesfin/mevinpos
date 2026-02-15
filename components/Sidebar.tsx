@@ -32,13 +32,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
   }, [currentView]);
 
   const navItems = [
-    { mode: ViewMode.CHECKOUT, icon: LayoutGrid, label: 'Settle' },
-    { mode: ViewMode.RECEIPTS, icon: Receipt, label: 'Receipts' },
+    { mode: ViewMode.CHECKOUT, icon: LayoutGrid, label: 'Point of Sale' },
     { mode: ViewMode.INVOICES, icon: FileText, label: 'Invoices' },
-    { mode: ViewMode.REPORTS, icon: BarChart3, label: 'Reports' },
+    { mode: ViewMode.RECEIPTS, icon: Receipt, label: 'Receipts' },
     { mode: ViewMode.SHIFTS, icon: Clock, label: 'Shifts' },
     { mode: ViewMode.CUSTOMERS, icon: Users, label: 'Clients' },
-    { mode: ViewMode.TAXES, icon: ShieldCheck, label: 'Tax HS' },
+    { mode: ViewMode.TAXES, icon: ShieldCheck, label: 'Taxes' },
+    { mode: ViewMode.REPORTS, icon: BarChart3, label: 'Reports' },
     { mode: ViewMode.PROMOTIONS, icon: Ticket, label: 'Promos' },
   ];
 
